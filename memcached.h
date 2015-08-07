@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-#include <event.h>
+#include <event.h> /** libevent API */
 #include <netdb.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -295,6 +295,7 @@ struct stats {
 /* When adding a setting, be sure to update process_stat_settings */
 /**
  * Globally accessible settings as derived from the commandline.
+ * 从命令行导出的全局可用的settings
  */
 struct settings {
     size_t maxbytes;
@@ -309,7 +310,7 @@ struct settings {
     char *socketpath;   /* path to unix socket if using local socket */
     int access;  /* access mask (a la chmod) for unix domain socket */
     double factor;          /* chunk size growth factor */
-    int chunk_size;
+    int chunk_size;         /*** chunk初始大小 ***/
     int num_threads;        /* number of worker (without dispatcher) libevent threads to run */
     int num_threads_per_udp; /* number of worker threads serving each udp socket */
     char prefix_delimiter;  /* character that marks a key prefix (for stats) */

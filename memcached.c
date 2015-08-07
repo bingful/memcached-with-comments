@@ -14,15 +14,15 @@
  *      Brad Fitzpatrick <brad@danga.com>
  */
 #include "memcached.h"
-#include <sys/stat.h>
+#include <sys/stat.h>   /** 定义函数fstat(), lstat(), and stat()返回值的数据结构 **/
 #include <sys/socket.h>
-#include <sys/un.h>
+#include <sys/un.h>     /** Unix domain sockets定义 **/
 #include <signal.h>
 #include <sys/param.h>
-#include <sys/resource.h>
-#include <sys/uio.h>
-#include <ctype.h>
-#include <stdarg.h>
+#include <sys/resource.h>   /** definitions for XSI resource operations **/
+#include <sys/uio.h>        /** definitions for vector I/O operations **/
+#include <ctype.h>      /** 测试字符类型相关函数 **/
+#include <stdarg.h>     /** 变长参数相关 **/
 
 /* some POSIX systems need the following definition
  * to get mlockall flags out of sys/mman.h.  */
@@ -33,20 +33,20 @@
 #ifndef __need_IOV_MAX
 #define __need_IOV_MAX
 #endif
-#include <pwd.h>
-#include <sys/mman.h>
-#include <fcntl.h>
+#include <pwd.h>    /** 密码结构体 **/
+#include <sys/mman.h>   /** 内存管理 **/
+#include <fcntl.h>      /** 文件控制 **/
 #include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <assert.h>
-#include <limits.h>
-#include <sysexits.h>
-#include <stddef.h>
+#include <arpa/inet.h>  /** internet操作定义 **/
+#include <errno.h>      /** 错误码宏 **/
+#include <stdlib.h>     /** 通用库：内存管理、字符串操作、随机数等 **/
+#include <stdio.h>      /** 文件操作、IO **/
+#include <string.h>     /** 字符串处理 **/
+#include <time.h>       /** 时间/日期实用组件 **/
+#include <assert.h>     /** 条件编译宏 **/
+#include <limits.h>     /** 基本数据类型size **/
+#include <sysexits.h>   /** 系统程序退出码 **/
+#include <stddef.h>     /** 通用宏定义 **/
 
 /* FreeBSD 4.x doesn't have IOV_MAX exposed. */
 #ifndef IOV_MAX
@@ -171,6 +171,7 @@ static rel_time_t realtime(const time_t exptime) {
     }
 }
 
+/** stat全局状态初始化 */
 static void stats_init(void) {
     stats.curr_items = stats.total_items = stats.curr_conns = stats.total_conns = stats.conn_structs = 0;
     stats.get_cmds = stats.set_cmds = stats.get_hits = stats.get_misses = stats.evictions = stats.reclaimed = 0;
@@ -208,7 +209,7 @@ static void stats_reset(void) {
     item_stats_reset();
 }
 
-static void settings_init(void) {
+static void settings_init(void) {   /*** 初始化全局变量settings ***/
     settings.use_cas = true;
     settings.access = 0700;
     settings.port = 11211;
@@ -222,7 +223,7 @@ static void settings_init(void) {
     settings.oldest_cas = 0;          /* supplements accuracy of oldest_live */
     settings.evict_to_free = 1;       /* push old items out of cache when memory runs out */
     settings.socketpath = NULL;       /* by default, not using a unix socket */
-    settings.factor = 1.25;
+    settings.factor = 1.25;           /*** chunk大小增长因子 ***/
     settings.chunk_size = 48;         /* space for a modest key and value */
     settings.num_threads = 4;         /* N workers */
     settings.num_threads_per_udp = 0;
@@ -230,8 +231,8 @@ static void settings_init(void) {
     settings.detail_enabled = 0;
     settings.reqs_per_event = 20;
     settings.backlog = 1024;
-    settings.binding_protocol = negotiating_prot;
-    settings.item_size_max = 1024 * 1024; /* The famous 1MB upper limit. */
+    settings.binding_protocol = negotiating_prot;   /*** 文本协议: 3  二进制: 4  协商negotiating_prot: 5 ***/
+    settings.item_size_max = 1024 * 1024; /* The famous 1MB upper limit. */  /*** 这就是著名的1MB限制啊 ***/
     settings.maxconns_fast = false;
     settings.lru_crawler = false;
     settings.lru_crawler_sleep = 100;
@@ -244,7 +245,7 @@ static void settings_init(void) {
     settings.slab_reassign = false;
     settings.slab_automove = 0;
     settings.shutdown_command = false;
-    settings.tail_repair_time = TAIL_REPAIR_TIME_DEFAULT;
+    settings.tail_repair_time = TAIL_REPAIR_TIME_DEFAULT;   /*** 0 ***/
     settings.flush_enabled = true;
     settings.crawls_persleep = 1000;
 }
@@ -4719,7 +4720,7 @@ static int server_socket_unix(const char *path, int access_mask) {
  * rather than absolute UNIX timestamps, a space savings on systems where
  * sizeof(time_t) > sizeof(unsigned int).
  */
-volatile rel_time_t current_time;
+volatile rel_time_t current_time; /** unsigned int, 相对于server启动时刻的秒数 **/
 static struct event clockevent;
 
 /* libevent uses a monotonic clock when available for event scheduling. Aside
@@ -4975,6 +4976,10 @@ static void remove_pidfile(const char *pid_file) {
 
 }
 
+/**
+ * 打印出信号值的字符串描述，退出，退出码0
+ * @param sig [description]
+ */
 static void sig_handler(const int sig) {
     printf("Signal handled: %s.\n", strsignal(sig));
     exit(EXIT_SUCCESS);
@@ -5126,7 +5131,7 @@ int main (int argc, char **argv) {
     signal(SIGINT, sig_handler);
     signal(SIGTERM, sig_handler);
 
-    /* init settings */
+    /* init settings */  /*** 初始化全局变量settings ***/
     settings_init();
 
     /* Run regardless of initializing it later */
@@ -5230,13 +5235,13 @@ int main (int argc, char **argv) {
             }
             break;
         case 'd':
-            do_daemonize = true;
+            do_daemonize = true; /** -d 是否以daemon运行 */
             break;
         case 'r':
             maxcore = 1;
             break;
         case 'R':
-            settings.reqs_per_event = atoi(optarg);
+            settings.reqs_per_event = atoi(optarg); /** 默认值20 */
             if (settings.reqs_per_event == 0) {
                 fprintf(stderr, "Number of requests per event must be greater than 0\n");
                 return 1;
@@ -5256,7 +5261,7 @@ int main (int argc, char **argv) {
             }
             break;
         case 'n':
-            settings.chunk_size = atoi(optarg);
+            settings.chunk_size = atoi(optarg); /** 默认值48 */
             if (settings.chunk_size == 0) {
                 fprintf(stderr, "Chunk size must be greater than 0\n");
                 return 1;
@@ -5316,7 +5321,7 @@ int main (int argc, char **argv) {
                 exit(EX_USAGE);
             }
             break;
-        case 'I':
+        case 'I':   /** 设置最大item size */
             buf = strdup(optarg);
             unit = buf[strlen(buf)-1];
             if (unit == 'k' || unit == 'm' ||

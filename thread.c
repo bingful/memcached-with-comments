@@ -608,11 +608,11 @@ void STATS_UNLOCK() {
     pthread_mutex_unlock(&stats_lock);
 }
 
-void threadlocal_stats_reset(void) {
+void threadlocal_stats_reset(void) {    /** 线程本地的stats重置 */
     int ii, sid;
     for (ii = 0; ii < settings.num_threads; ++ii) {
         pthread_mutex_lock(&threads[ii].stats.mutex);
-
+/** 疑问，下面这些地方全部字段设置为0为神马不用memset啊 */
         threads[ii].stats.get_cmds = 0;
         threads[ii].stats.get_misses = 0;
         threads[ii].stats.touch_cmds = 0;
