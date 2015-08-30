@@ -1,3 +1,15 @@
+/**
+ * 配置 linux memcached 服务
+ * 可修改 PORT, USER, MAXCONN, CACHESIZE, OPTIONS 等常量设置启动参数
+ * 步骤:
+ * 1. cp ./memcached.sysv /etc/init.d/memcached
+ * 2. chkconfig --add memcached
+ * 3. chkconfig --level 235 memcached on
+ * 4. chkconfig --list memcached
+ * 完成后可通过
+ * service memcached start/stop/restart
+ * 控制memcached服务开启/关闭/重启
+ */
 #! /bin/sh
 #
 # chkconfig: - 55 45
