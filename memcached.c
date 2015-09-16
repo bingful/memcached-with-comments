@@ -194,7 +194,7 @@ static void stats_init(void) {
     process_started = time(0) - ITEM_UPDATE_INTERVAL - 2;
     stats_prefix_init();
 }
-
+/** stat全局状态重置 */
 static void stats_reset(void) {
     STATS_LOCK();
     stats.total_items = stats.total_conns = 0;
@@ -349,7 +349,6 @@ static const char *prot_text(enum protocol prot) {
     }
     return rv;
 }
-
 conn *conn_new(const int sfd, enum conn_states init_state,
                 const int event_flags,
                 const int read_buffer_size, enum network_transport transport,
@@ -5613,6 +5612,7 @@ int main (int argc, char **argv) {
     }
 
     /* initialize main thread libevent instance */
+    /* 初始化libevent */
     main_base = event_init();
 
     /* initialize other stuff */

@@ -6,15 +6,36 @@ Memcahced中文注释版
 以/**开头的注释是增加的注释
 
 ## 存储结构
-cache
-├── item
-│   ├── slab
-│   │   ├── chunk
-│   │   └── ...
-│   └── ...
-└── ...
+*****************************************
+*       *************************       *
+*       *       *********       *       *
+* cache * slab  * chunk * ...   *  ...  *
+*       *       *********       *       *
+*       *************************       *
+*****************************************
 
 ## 执行流程
+/*启动memcached服务*/
+int main (int argc, char **argv) (memcached.c) ->
+memcached_thread_init(int nthreads, struct event_base *main_base) (thread.c) ->
+setup_thread(LIBEVENT_THREAD *me) (thread.c) ->
+cache_create(const char *name,
+             size_t bufsize,
+             size_t align,
+             cache_constructor_t* constructor,
+             cache_destructor_t* destructor) (thread.c)
+/*libevent 处理请求触发 event_handler*/
+drive_machine(conn *c) (memcached.c) ->
+try_read_command(conn *c) (memcached.c) ->
+process_command(conn *c, char *command) (memcached.c) ->
+process_get_command(conn *c, token_t *tokens, size_t ntokens, bool return_cas) (memcached.c) ->
+.. to be continued
+conn_new(const int sfd, //
+         enum conn_states init_state,
+         const int event_flags,
+         const int read_buffer_size,
+         enum network_transport transport,
+         struct event_base *base)->
 item_get(key_token->value, key_token->length) (memcached.c) -->
 hv = hash(key, nkey), item_get (key, nkey) (thread.c) -->
 do_item_get (items.c) -->
@@ -57,8 +78,8 @@ assoc_find (key, nkey, hv) (assoc.c)
 │   ├── damemtop.yaml //memcached服务负载信息配置文件
 │   ├── mc_slab_mover //memcached服务SLAB(perl)
 │   ├── memcached-init //memcached服务启动/停止/重启/强制重启脚本
-│   ├── memcached.service
-│   ├── memcached.sysv //配置memcache服务
+│   ├── memcached.service //注册systemd相关配置
+│   ├── memcached.sysv //注册systemd相关命令
 │   ├── memcached-tool //查看memcached状态,配置等信息(perl)
 │   ├── README.damemtop
 │   └── start-memcached //开启memcached服务,创建守护进程(perl)
