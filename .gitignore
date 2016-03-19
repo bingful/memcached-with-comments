@@ -41,4 +41,5 @@ doc/protocol-binary.txt
 /memcached.spec
 .*.swp
 .exvim.*
+/nbproject
 
