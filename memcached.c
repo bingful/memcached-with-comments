@@ -209,30 +209,33 @@ static void stats_reset(void) {
     item_stats_reset();
 }
 
-static void settings_init(void) {   /*** 初始化全局变量settings ***/
-    settings.use_cas = true;
-    settings.access = 0700;
-    settings.port = 11211;
-    settings.udpport = 11211;
+/**
+ * 初始化设置
+ */
+static void settings_init(void) {
+    settings.use_cas = true;    /**  cas: 仅在自上次获取数据之后 数据没被修改的情况下才能存储数据 */
+    settings.access = 0700;     /** unix domain socket的权限 */
+    settings.port = 11211;      /** 默认tcp端口号 */
+    settings.udpport = 11211;   /** 默认udp端口号 */
     /* By default this string should be NULL for getaddrinfo() */
-    settings.inter = NULL;
-    settings.maxbytes = 64 * 1024 * 1024; /* default is 64MB */
-    settings.maxconns = 1024;         /* to limit connections-related memory to about 5MB */
-    settings.verbose = 0;
+    settings.inter = NULL;      /** 设置监听的网络接口 */
+    settings.maxbytes = 64 * 1024 * 1024; /** 使用的最大内存，默认为64MB */
+    settings.maxconns = 1024;         /* 最大同时连接数，默认为1024，是为了将连接相关的内存消耗限制在大约5MB */
+    settings.verbose = 0;             /* 罗嗦级别，默认为0 */
     settings.oldest_live = 0;
     settings.oldest_cas = 0;          /* supplements accuracy of oldest_live */
     settings.evict_to_free = 1;       /* push old items out of cache when memory runs out */
-    settings.socketpath = NULL;       /* by default, not using a unix socket */
-    settings.factor = 1.25;           /*** chunk大小增长因子 ***/
+    settings.socketpath = NULL;       /* 默认不使用unix socket */
+    settings.factor = 1.25;           /* chunk大小增长因子 */
     settings.chunk_size = 48;         /* space for a modest key and value */
-    settings.num_threads = 4;         /* N workers */
+    settings.num_threads = 4;         /* worker的个数 */
     settings.num_threads_per_udp = 0;
     settings.prefix_delimiter = ':';
     settings.detail_enabled = 0;
     settings.reqs_per_event = 20;
     settings.backlog = 1024;
-    settings.binding_protocol = negotiating_prot;   /*** 文本协议: 3  二进制: 4  协商negotiating_prot: 5 ***/
-    settings.item_size_max = 1024 * 1024; /* The famous 1MB upper limit. */  /*** 这就是著名的1MB限制啊 ***/
+    settings.binding_protocol = negotiating_prot;   /** 3:文本协议  4:二进制  5:协商negotiating_prot */
+    settings.item_size_max = 1024 * 1024; /** 这就是著名的1MB限制啊 */
     settings.maxconns_fast = false;
     settings.lru_crawler = false;
     settings.lru_crawler_sleep = 100;
@@ -245,7 +248,7 @@ static void settings_init(void) {   /*** 初始化全局变量settings ***/
     settings.slab_reassign = false;
     settings.slab_automove = 0;
     settings.shutdown_command = false;
-    settings.tail_repair_time = TAIL_REPAIR_TIME_DEFAULT;   /*** 0 ***/
+    settings.tail_repair_time = TAIL_REPAIR_TIME_DEFAULT;
     settings.flush_enabled = true;
     settings.crawls_persleep = 1000;
 }
@@ -4976,7 +4979,7 @@ static void remove_pidfile(const char *pid_file) {
 }
 
 /**
- * 打印出信号值的字符串描述，退出，退出码0
+ * 打印出信号值的描述，退出，退出码为0
  * @param sig [description]
  */
 static void sig_handler(const int sig) {
@@ -5041,14 +5044,20 @@ static int enable_large_pages(void) {
 
 /**
  * Do basic sanity check of the runtime environment
+ * 对运行环境做基本的健康检查，主要是检查libevent版本是否不低于1.3
  * @return true if no errors found, false if we can't use this env
+ * 若没有错误返回true，若此环境不能使用返回false
  */
 static bool sanitycheck(void) {
-    /* One of our biggest problems is old and bogus libevents */
-    const char *ever = event_get_version();
+    /* One of our biggest problems is old and bogus libevents 
+       最大的问题就是老旧无效的libevent
+     */
+    const char *ever = event_get_version(); /** 获取libevent版本号 */
     if (ever != NULL) {
-        if (strncmp(ever, "1.", 2) == 0) {
-            /* Require at least 1.3 (that's still a couple of years old) */
+        if (strncmp(ever, "1.", 2) == 0) {  /** 比较ever和"1."的前2个字符，如果是1.x系列 */
+            /* Require at least 1.3 (that's still a couple of years old) 
+             至少需要1.3版本，但1.3仍然有点老了
+             */
             if ((ever[2] == '1' || ever[2] == '2') && !isdigit(ever[3])) {
                 fprintf(stderr, "You are using libevent %s.\nPlease upgrade to"
                         " a more recent version (1.3 or newer)\n",
@@ -5056,13 +5065,16 @@ static bool sanitycheck(void) {
                 return false;
             }
         }
+        // 咦？这里没有else？
+        // 2.x或更高的libevent版本当然符合要求啦
     }
 
     return true;
 }
 
-int main (int argc, char **argv) {
-    int c;
+/** 程序入口 */
+int main (int argc, char **argv) {  /** argc是参数个数，argv指针数组代表参数列表 */
+    int c;      /** 变量c用于处理启动时传递的选项参数 */
     bool lock_memory = false;
     bool do_daemonize = false;
     bool preallocate = false;
@@ -5074,15 +5086,15 @@ int main (int argc, char **argv) {
     char *buf;
     char unit = '\0';
     int size_max = 0;
-    int retval = EXIT_SUCCESS;
+    int retval = EXIT_SUCCESS; /** EXIT_SUCCESS在stdlib.h里被定义为0 */
     /* listening sockets */
     static int *l_socket = NULL;
 
     /* udp socket */
     static int *u_socket = NULL;
     bool protocol_specified = false;
-    bool tcp_specified = false;
-    bool udp_specified = false;
+    bool tcp_specified = false;     /** 传了参数选项-p，指定了tcp端口 */
+    bool udp_specified = false;     /** 传了参数选项-U，指定了udp端口 */
     bool start_lru_maintainer = false;
     bool start_lru_crawler = false;
     enum hashfunc_type hash_type = JENKINS_HASH;
@@ -5122,104 +5134,116 @@ int main (int argc, char **argv) {
         NULL
     };
 
-    if (!sanitycheck()) {
-        return EX_OSERR;
+    if (!sanitycheck()) {   /** 对运行环境做基本的健康检查，主要是检查libevent版本是否不低于1.3 */
+        return EX_OSERR;    /** EX_OSERR在sysexits.h里被定义为71 */
     }
 
-    /* handle SIGINT and SIGTERM */
-    signal(SIGINT, sig_handler);
+    /* handle SIGINT and SIGTERM 
+       注册SIGINT和SIGTERM信号处理函数
+     */
+    signal(SIGINT, sig_handler);    /** 打印出信号值的描述，退出，退出码为0 */
     signal(SIGTERM, sig_handler);
 
-    /* init settings */  /*** 初始化全局变量settings ***/
+    /* init settings 
+       初始化设置
+     */
     settings_init();
 
     /* Run regardless of initializing it later */
     init_lru_crawler();
     init_lru_maintainer();
 
-    /* set stderr non-buffering (for running under, say, daemontools) */
+    /* set stderr non-buffering (for running under, say, daemontools) 
+       设置stderr为非缓冲
+     */
     setbuf(stderr, NULL);
 
-    /* process arguments */
-    while (-1 != (c = getopt(argc, argv,
-          "a:"  /* access mask for unix socket */
-          "A"  /* enable admin shutdown commannd */
-          "p:"  /* TCP port number to listen on */
-          "s:"  /* unix socket path to listen on */
-          "U:"  /* UDP port number to listen on */
-          "m:"  /* max memory to use for items in megabytes */
-          "M"   /* return error on memory exhausted */
-          "c:"  /* max simultaneous connections */
+    /* process arguments
+     * 处理参数, 即解析memcached启动命令的参数
+     */
+    while (-1 != (c = getopt(argc, argv,                /** getopt循环获取所有的选项参数 */
+          "a:"  /* access mask for unix socket */       /** 如果一个字符后面紧跟一个冒号，表明该选项有一个关联值，关联值存放在optarg外部变量中 */
+          "A"  /* enable admin shutdown commannd */     /** 启用shutdown管理命令 */
+          "p:"  /* TCP port number to listen on */      /** tcp监听端口 */
+          "s:"  /* unix socket path to listen on */     /** unix域套接字监听路径 */
+          "U:"  /* UDP port number to listen on */      /** udp监听端口 */
+          "m:"  /* max memory to use for items in megabytes */  /** 最大内存数,MB */
+          "M"   /* return error on memory exhausted */  /** 内存耗尽后返回错误 */
+          "c:"  /* max simultaneous connections */      /** 最大同时连接数 */
           "k"   /* lock down all paged memory */
-          "hiV" /* help, licence info, version */
+          "hiV" /* help, licence info, version */       /** 帮助/许可信息/版本 */
           "r"   /* maximize core file limit */
-          "v"   /* verbose */
-          "d"   /* daemon mode */
-          "l:"  /* interface to listen on */
-          "u:"  /* user identity to run as */
-          "P:"  /* save PID in file */
-          "f:"  /* factor? */
-          "n:"  /* minimum space allocated for key+value+flags */
-          "t:"  /* threads */
+          "v"   /* verbose */                           /** 罗嗦模式 */
+          "d"   /* daemon mode */                       /** 守护进程模式 */
+          "l:"  /* interface to listen on */            /** 设置监听的网络接口 */
+          "u:"  /* user identity to run as */           /** 运行用户 */
+          "P:"  /* save PID in file */                  /** 用于存放进程id的pid文件的路径 */
+          "f:"  /* factor? */                           /** chunk大小增长因子 */
+          "n:"  /* minimum space allocated for key+value+flags */   /** 分配用于key+value+flag的最小空间，即chunk的最小值or起始值 */
+          "t:"  /* threads */                           /** worker线程个数 */
           "D:"  /* prefix delimiter? */
           "L"   /* Large memory pages */
           "R:"  /* max requests per event */
-          "C"   /* Disable use of CAS */
+          "C"   /* Disable use of CAS */            /** 禁用CAS。 CAS: 仅在自上次获取数据之后 数据没被修改的情况下才能存储数据 */
           "b:"  /* backlog queue limit */
           "B:"  /* Binding protocol */
           "I:"  /* Max item size */
           "S"   /* Sasl ON */
-          "F"   /* Disable flush_all */
-          "o:"  /* Extended generic options */
+          "F"   /* Disable flush_all */             /** 禁用flush_all命令 */
+          "o:"  /* Extended generic options */      /** 用于扩展的通用选项 */
         ))) {
         switch (c) {
         case 'A':
-            /* enables "shutdown" command */
+            /* enables "shutdown" command
+             * 启用shutdown管理命令
+             */
             settings.shutdown_command = true;
             break;
 
         case 'a':
-            /* access for unix domain socket, as octal mask (like chmod)*/
+            /* access for unix domain socket, as octal mask (like chmod)
+             * unix域套接字的access权限，8进制
+             */
             settings.access= strtol(optarg,NULL,8);
             break;
 
-        case 'U':
+        case 'U':   /** udp监听端口号 */
             settings.udpport = atoi(optarg);
             udp_specified = true;
             break;
-        case 'p':
+        case 'p':   /** tcp监听端口号 */
             settings.port = atoi(optarg);
             tcp_specified = true;
             break;
-        case 's':
+        case 's':   /** unix域套接字监听路径 */
             settings.socketpath = optarg;
             break;
-        case 'm':
+        case 'm':   /** 最大内存数,MB */
             settings.maxbytes = ((size_t)atoi(optarg)) * 1024 * 1024;
             break;
         case 'M':
             settings.evict_to_free = 0;
             break;
-        case 'c':
+        case 'c':   /** 同时连接最大数目 */
             settings.maxconns = atoi(optarg);
             break;
-        case 'h':
+        case 'h':   /** 打印用法 */
             usage();
             exit(EXIT_SUCCESS);
-        case 'i':
+        case 'i':   /** 打印许可信息 */
             usage_license();
             exit(EXIT_SUCCESS);
-        case 'V':
+        case 'V':   /** 打印版本 */
             printf(PACKAGE " " VERSION "\n");
             exit(EXIT_SUCCESS);
         case 'k':
             lock_memory = true;
             break;
-        case 'v':
+        case 'v':   /** 罗嗦级别 */
             settings.verbose++;
             break;
         case 'l':
-            if (settings.inter != NULL) {
+            if (settings.inter != NULL) {   /** 复制原settings.inter和optarg到新的内存区,并将setting.inter指向新内存区 */
                 size_t len = strlen(settings.inter) + strlen(optarg) + 2;
                 char *p = malloc(len);
                 if (p == NULL) {
@@ -5230,11 +5254,11 @@ int main (int argc, char **argv) {
                 free(settings.inter);
                 settings.inter = p;
             } else {
-                settings.inter= strdup(optarg);
+                settings.inter= strdup(optarg);     /** 复制一份optarg到setting.inter */
             }
             break;
-        case 'd':
-            do_daemonize = true; /** -d 是否以daemon运行 */
+        case 'd': /** -d 是否以daemon守护进程方式运行 */
+            do_daemonize = true; 
             break;
         case 'r':
             maxcore = 1;
@@ -5246,27 +5270,27 @@ int main (int argc, char **argv) {
                 return 1;
             }
             break;
-        case 'u':
+        case 'u':   /** 运行用户 */
             username = optarg;
             break;
-        case 'P':
+        case 'P':   /** 用于存放进程id的pid文件的路径 */
             pid_file = optarg;
             break;
-        case 'f':
+        case 'f':   /** chunk大小增长因子 */
             settings.factor = atof(optarg);
             if (settings.factor <= 1.0) {
                 fprintf(stderr, "Factor must be greater than 1\n");
                 return 1;
             }
             break;
-        case 'n':
-            settings.chunk_size = atoi(optarg); /** 默认值48 */
+        case 'n':   /** chunk的最小值 默认48 */
+            settings.chunk_size = atoi(optarg);
             if (settings.chunk_size == 0) {
                 fprintf(stderr, "Chunk size must be greater than 0\n");
                 return 1;
             }
             break;
-        case 't':
+        case 't':   /** worker线程个数，大于0，不大于64 */
             settings.num_threads = atoi(optarg);
             if (settings.num_threads <= 0) {
                 fprintf(stderr, "Number of threads must be greater than 0\n");
@@ -5300,13 +5324,13 @@ int main (int argc, char **argv) {
                 return 1;
             }
             break;
-        case 'C' :
+        case 'C' :  /** 开启cas */
             settings.use_cas = false;
             break;
         case 'b' :
             settings.backlog = atoi(optarg);
             break;
-        case 'B':
+        case 'B':   /** 指定协议 */
             protocol_specified = true;
             if (strcmp(optarg, "auto") == 0) {
                 settings.binding_protocol = negotiating_prot;
@@ -5321,7 +5345,7 @@ int main (int argc, char **argv) {
             }
             break;
         case 'I':   /** 设置最大item size */
-            buf = strdup(optarg);
+            buf = strdup(optarg);   /** 先复制一份咯，因为可能会改变该选项值内容 */
             unit = buf[strlen(buf)-1];
             if (unit == 'k' || unit == 'm' ||
                 unit == 'K' || unit == 'M') {
@@ -5359,10 +5383,10 @@ int main (int argc, char **argv) {
 #endif
             settings.sasl = true;
             break;
-       case 'F' :
+       case 'F' :   /** 禁用flush_all命令 */
             settings.flush_enabled = false;
             break;
-        case 'o': /* It's sub-opts time! */
+        case 'o': /** 扩展选项 It's sub-opts time! */
             subopts = optarg;
 
             while (*subopts != '\0') {
