@@ -1138,7 +1138,7 @@ static item *crawler_crawl_q(item *it) {
     item **head, **tail;
     assert(it->it_flags == 1);
     assert(it->nbytes == 0);
-    assert(it->slabs_clsid < LARGEST_ID);
+    assert((uint32_t)it->slabs_clsid < LARGEST_ID);
     head = &heads[it->slabs_clsid];
     tail = &tails[it->slabs_clsid];
 
