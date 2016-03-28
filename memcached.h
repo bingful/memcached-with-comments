@@ -298,7 +298,7 @@ struct stats {
  * 从命令行导出的全局可用的settings
  */
 struct settings {
-    size_t maxbytes;
+    size_t maxbytes;    /** 最大内存数 */
     int maxconns;
     int port;
     int udpport;

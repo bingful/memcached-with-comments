@@ -5242,8 +5242,8 @@ int main (int argc, char **argv) {  /** argc是参数个数，argv指针数组�
         case 'v':   /** 罗嗦级别 */
             settings.verbose++;
             break;
-        case 'l':
-            if (settings.inter != NULL) {   /** 复制原settings.inter和optarg到新的内存区,并将setting.inter指向新内存区 */
+        case 'l':   /** 设置监听的网络接口 */
+            if (settings.inter != NULL) {   /** 复制原settings.inter和optarg到新的内存区,并将setting.inter指向新内存区,原内存区free掉 */
                 size_t len = strlen(settings.inter) + strlen(optarg) + 2;
                 char *p = malloc(len);
                 if (p == NULL) {
@@ -5254,7 +5254,7 @@ int main (int argc, char **argv) {  /** argc是参数个数，argv指针数组�
                 free(settings.inter);
                 settings.inter = p;
             } else {
-                settings.inter= strdup(optarg);     /** 复制一份optarg到setting.inter */
+                settings.inter= strdup(optarg);     /** 申请与optarg相同大小的空间,复制optarg到改空间,返回其首地址,该地址可以free掉 */
             }
             break;
         case 'd': /** -d 是否以daemon守护进程方式运行 */
@@ -5324,7 +5324,7 @@ int main (int argc, char **argv) {  /** argc是参数个数，argv指针数组�
                 return 1;
             }
             break;
-        case 'C' :  /** 开启cas */
+        case 'C' :  /** 禁用cas */
             settings.use_cas = false;
             break;
         case 'b' :
@@ -5374,7 +5374,7 @@ int main (int argc, char **argv) {  /** argc是参数个数，argv指针数组�
                     " and will decrease your memory efficiency.\n"
                 );
             }
-            free(buf);
+            free(buf);  /** strdup分配的内存空间要释放 */
             break;
         case 'S': /* set Sasl authentication to true. Default is false */
 #ifndef ENABLE_SASL
@@ -5514,7 +5514,7 @@ int main (int argc, char **argv) {  /** argc是参数个数，argv指针数组�
         exit(EX_USAGE);
     }
 
-    if (hash_init(hash_type) != 0) {
+    if (hash_init(hash_type) != 0) {    /** 选择一种hash方法:jenkins 或者 murmur3 */
         fprintf(stderr, "Failed to initialize hash_algorithm!\n");
         exit(EX_USAGE);
     }
