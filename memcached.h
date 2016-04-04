@@ -275,11 +275,11 @@ struct stats {
     uint64_t      touch_misses;
     uint64_t      evictions;
     uint64_t      reclaimed;
-    time_t        started;          /* when the process was started */
-    bool          accepting_conns;  /* whether we are currently accepting */
+    time_t        started;          /** 进程开始的时刻 */
+    bool          accepting_conns;  /** 当前是否正在接受连接 */
     uint64_t      listen_disabled_num;
     unsigned int  hash_power_level; /* Better hope it's not over 9000 */
-    uint64_t      hash_bytes;       /* size used for hash tables */
+    uint64_t      hash_bytes;       /* 哈希表使用的内存 */
     bool          hash_is_expanding; /* If the hash table is being expanded */
     uint64_t      expired_unfetched; /* items reclaimed but never touched */
     uint64_t      evicted_unfetched; /* items evicted but never touched */

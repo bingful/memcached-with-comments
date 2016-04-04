@@ -138,6 +138,7 @@ void slabs_init(const size_t limit, const double factor, const bool prealloc) {
     }
 
     /* for the test suite:  faking of how much we've already malloc'd */
+    /** 作为测试之用:已分配出去内存量的假数据 */
     {
         char *t_initial_malloc = getenv("T_MEMD_INITIAL_MALLOC");
         if (t_initial_malloc) {
@@ -174,6 +175,7 @@ static void slabs_preallocate (const unsigned int maxslabs) {
 
 }
 
+/** slabclass数组中的第{id}个元素,将它的slab_list扩容,初始16,之后每次扩容都翻一倍 */
 static int grow_slab_list (const unsigned int id) {
     slabclass_t *p = &slabclass[id];
     if (p->slabs == p->list_size) {
@@ -198,7 +200,7 @@ static void split_slab_page_into_freelist(char *ptr, const unsigned int id) {
 static int do_slabs_newslab(const unsigned int id) {
     slabclass_t *p = &slabclass[id];
     int len = settings.slab_reassign ? settings.item_size_max
-        : p->size * p->perslab;
+        : p->size * p->perslab;         /** 这是神马意思?  size * perslab的值难道不是item_size_max?? */
     char *ptr;
 
     if ((mem_limit && mem_malloced + len > mem_limit && p->slabs > 0)) {
@@ -271,7 +273,7 @@ static void do_slabs_free(void *ptr, const size_t size, unsigned int id) {
     item *it;
 
     assert(id >= POWER_SMALLEST && id <= power_largest);
-    if (id < POWER_SMALLEST || id > power_largest)
+    if (id < POWER_SMALLEST || id > power_largest)  /** 上面assert断言过,这个if判断没有意义 */
         return;
 
     MEMCACHED_SLABS_FREE(size, id, ptr);
@@ -380,6 +382,12 @@ static void do_slabs_stats(ADD_STAT add_stats, void *c) {
     add_stats(NULL, 0, NULL, 0, c);
 }
 
+/** 
+ * 分配内存
+ * 有两种分配模式:
+ *  1. 从预分配的大块内存中取用(mem_base标识大片内存开始,mem_current标识大片内存可用位置,mem_avail标识大片内存可用容量)
+ *  2. 从堆中分配(malloc/calloc/realloc)
+ */
 static void *memory_allocate(size_t size) {
     void *ret;
 

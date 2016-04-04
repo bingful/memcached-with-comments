@@ -5641,7 +5641,7 @@ int main (int argc, char **argv) {  /** argc是参数个数，argv指针数组�
 
     /* initialize other stuff */
     stats_init();
-    assoc_init(settings.hashpower_init);
+    assoc_init(settings.hashpower_init);    /** settings.hashpower_init的初始值是0 */
     conn_init();
     slabs_init(settings.maxbytes, settings.factor, preallocate);
 

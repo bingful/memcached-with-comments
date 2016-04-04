@@ -41,6 +41,13 @@
 
 #include "memcached.h"
 
+/** daemon()的实现
+ * nochdir若为0,则会当前工作目录设置到/目录
+ * noclose若为0,则会将标准输入/标准输出/标准出错重定向到/dev/null.
+ * 
+ * 为什么maxcore传给nochdir呢?
+ * 为什么verbose传给noclose呢?因为如果设置了啰嗦级别(verbose>0)之后,就需要在终端上输出相关信息,所以不能关闭终端
+ */
 int daemonize(int nochdir, int noclose)
 {
     int fd;
@@ -65,7 +72,7 @@ int daemonize(int nochdir, int noclose)
     }
 
     if (noclose == 0 && (fd = open("/dev/null", O_RDWR, 0)) != -1) {
-        if(dup2(fd, STDIN_FILENO) < 0) {
+        if(dup2(fd, STDIN_FILENO) < 0) {    /* 把标准输入描述符重定向到/dev/null */
             perror("dup2 stdin");
             return (-1);
         }
