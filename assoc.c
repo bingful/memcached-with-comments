@@ -64,14 +64,14 @@ void assoc_init(const int hashtable_init) {
     if (hashtable_init) {
         hashpower = hashtable_init;
     }
-    primary_hashtable = calloc(hashsize(hashpower), sizeof(void *));
+    primary_hashtable = calloc(hashsize(hashpower), sizeof(void *));    /** calloc会将申请的内存初始化为0, 此处默认为2^16 * 8 Bytes */
     if (! primary_hashtable) {
         fprintf(stderr, "Failed to init hashtable.\n");
         exit(EXIT_FAILURE);
     }
     STATS_LOCK();
-    stats.hash_power_level = hashpower;
-    stats.hash_bytes = hashsize(hashpower) * sizeof(void *);
+    stats.hash_power_level = hashpower; /** 默认值为16，如果从参数hashtable_init指定则是指定的值 */
+    stats.hash_bytes = hashsize(hashpower) * sizeof(void *);    /** 默认为524288 （2^16 * 8）*/
     STATS_UNLOCK();
 }
 

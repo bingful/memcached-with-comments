@@ -182,7 +182,7 @@ static void stats_init(void) {
     stats.expired_unfetched = stats.evicted_unfetched = 0;
     stats.slabs_moved = 0;
     stats.lru_maintainer_juggles = 0;
-    stats.accepting_conns = true; /* assuming we start in this state. */
+    stats.accepting_conns = true; /** 假设从这个状态开始 */
     stats.slab_reassign_running = false;
     stats.lru_crawler_running = false;
     stats.lru_crawler_starts = 0;
@@ -312,15 +312,20 @@ extern pthread_mutex_t conn_lock;
  * used for things other than connections, but that's worth it in exchange for
  * being able to directly index the conns array by FD.
  */
+/** 初始化保存connection指针的数组。不实际分配connection结构体的内存空间，这样能避免当实际连接数远小于最大连接数时浪费内存。
+ *  这种做法（指: 分配指向connection结构体的指针的数组空间，而不实际分配connection结构体）虽然浪费了一些指针空间，这些指针空间被分配是因为存在一些不用于连接的FD，但是换来了能够直接根据FD去从数组中索引到连接对象的便利性，这样做是值得的。
+ */
 static void conn_init(void) {
     /* We're unlikely to see an FD much higher than maxconns. */
-    int next_fd = dup(1);
-    int headroom = 10;      /* account for extra unexpected open FDs */
+    /** 我们不太可能看到FD比maxconns高太多 */
+    int next_fd = dup(1);   /** next_fd是下一个可用的fd */
+    int headroom = 10;      /** 保留一些空间，防止额外的未预料到的打开的FD */
     struct rlimit rl;
 
     max_fds = settings.maxconns + headroom + next_fd;
 
     /* But if possible, get the actual highest FD we can possibly ever see. */
+    /** 如果可以的话，获取实际的最大FD, 其实就是RLIMIT_NOFILE */
     if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
         max_fds = rl.rlim_max;
     } else {
@@ -330,6 +335,7 @@ static void conn_init(void) {
 
     close(next_fd);
 
+    /** 分配max_fds容量的指针数组，指针类型是指向connection结构体的指针 */
     if ((conns = calloc(max_fds, sizeof(conn *))) == NULL) {
         fprintf(stderr, "Failed to allocate connection structures\n");
         /* This is unrecoverable so bail out early. */
@@ -5589,7 +5595,7 @@ int main (int argc, char **argv) {  /** argc是参数个数，argv指针数组�
         }
     }
 
-    /* lose root privileges if we have them */
+    /** 退出root权限 */
     if (getuid() == 0 || geteuid() == 0) {
         if (username == 0 || *username == '\0') {
             fprintf(stderr, "can't run as root without the -u switch\n");
@@ -5642,7 +5648,7 @@ int main (int argc, char **argv) {  /** argc是参数个数，argv指针数组�
     /* initialize other stuff */
     stats_init();
     assoc_init(settings.hashpower_init);    /** settings.hashpower_init的初始值是0 */
-    conn_init();
+    conn_init();    /** 初始化用于指向connection的指针的数组 */
     slabs_init(settings.maxbytes, settings.factor, preallocate);
 
     /*
